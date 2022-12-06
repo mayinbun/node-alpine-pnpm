@@ -1,0 +1,41 @@
+name: Create and publish docker image
+
+on:
+  push:
+    branches: [ 'master' ]
+    paths:
+      - 'Dockerfile'
+
+jobs:
+  ReleaseImage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+
+      - name: Login to registry
+        uses: docker/login-action@2
+        with:
+          registry: dock.es.ecg.tools
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            bunyamin92/node-alpine-pnpm
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
